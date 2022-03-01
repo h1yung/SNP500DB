@@ -1,13 +1,22 @@
 import javax.swing.*;
+import java.awt.*;
 
 public class StartingScreen {
     JFrame f;
     StartingScreen() {
         f = new JFrame();
         JButton b = new JButton("click");
-        b.setBounds(130,100,100, 40);//x axis, y axis, width, height  
+        JPanel sql_result = new JPanel();
+        sql_result.setBounds(500, 200, 400, 150);
+        sql_result.add(new JLabel("Welcome to Tutorials Point"));
+        sql_result.setBackground(Color.gray);
+        sql_result.setVisible(true);
+        sql_result.setVisible(true);//making the frame visible 
+        f.add(sql_result);
+        
+        b.setBounds(300, 200, 100, 50);//x axis, y axis, width, height  
         f.add(b);//adding button in JFrame  
-        f.setSize(400,500);//400 width and 500 height  
+        f.setSize(1000,600);//1000 width and 600 height  
         f.setLayout(null);//using no layout managers  
         f.setVisible(true);//making the frame visible 
     }
