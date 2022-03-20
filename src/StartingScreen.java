@@ -2,9 +2,11 @@ import javax.swing.*;
 import java.awt.*;
 
 public class StartingScreen {
-    JFrame f;
+    
     // hello update from david
-    StartingScreen() {
+    public static void startingScreen() {
+        JFrame f;
+        
         f = new JFrame();
         f.setResizable(false);
         JButton b = new JButton("extend");
