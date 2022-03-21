@@ -33,7 +33,6 @@ c1.execute("""CREATE TABLE IF NOT EXISTS IncomeStatement
 		NetIncomePreTax REAL, 
 		NetIncome REAL,
 		DilutedEPS REAL,
-		EarningsID INT NOT NULL,
 		FOREIGN KEY(ID) REFERENCES EarningsID
 		);
 	""")
@@ -79,6 +78,7 @@ c4.execute("""
 		);
 	""")
 
+# Creating EarningsID
 c5 = conn.cursor()
 quarters = ['Q1', 'Q2', 'Q3', 'Q4']
 years = [2021]
@@ -102,6 +102,12 @@ for quarter, year, ticker in itertools.product(*[quarters, years, tickers]): # c
 # 		SELECT * FROM EarningsID;
 # 	""")
 # print(c6.fetchall())
+
+c6 = conn.cursor()
+sql = """
+	INSERT INTO IncomeStatement()
+"""
+
 
 conn.commit()
 conn.close()
