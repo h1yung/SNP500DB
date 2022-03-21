@@ -1,20 +1,37 @@
 import javax.swing.*;
-import com.mysql.cj.xdevapi.Result;
+//import com.mysql.cj.xdevapi.Result;
 import java.awt.*;
 import java.sql.*;
 import java.util.*;
 
 public class StartingScreen {
     // hello update from david
-    public static void startingScreen() {
+    Connection conn = null;
 
-        // CONNECT TO SQL
-        Connection conn = null;
+    public StartingScreen() {
+        // connect to sql server
+        try {
+            this.conn = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException ex) {
+                System.out.println(ex.getMessage());
+            }
+        }
+    }
+
+    public void refreshStartingScreen() {
+        // refresh screen every time there's an update
         ResultSet res = null;
         try {
             // SQLITE 
-            conn = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
-            res = conn.createStatement().executeQuery("SELECT DISTINCT Ticker FROM EarningsID");
+            this.conn = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
+            res = this.conn.createStatement().executeQuery("SELECT DISTINCT Ticker FROM EarningsID");
             System.out.println("Connection Established");
             
             // GUI
@@ -39,7 +56,7 @@ public class StartingScreen {
             f.add(sql_data);
 
             sql_company.setBounds(100, 100, 200, 50);
-            sql_company.add(new JLabel("Primary Company Name"));
+            sql_company.add(new JLabel("Company Name"));
             sql_company.setBackground(Color.GRAY);
             sql_company.setVisible(true);
             sql_company.setVisible(true);//making the frame visible 
@@ -50,7 +67,6 @@ public class StartingScreen {
                 name.add(res.getString("Ticker"));
                 System.out.println(res.getString("Ticker"));
             }
-            
             JComboBox comboBox = new JComboBox(name.toArray());
             sql_company.add(comboBox, BorderLayout.NORTH);
 
@@ -66,8 +82,8 @@ public class StartingScreen {
             System.out.println(e.getMessage());
         } finally {
             try {
-                if (conn != null) {
-                    conn.close();
+                if (this.conn != null) {
+                    this.conn.close();
                 }
             } catch (SQLException ex) {
                 System.out.println(ex.getMessage());
