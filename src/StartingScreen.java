@@ -32,13 +32,10 @@ public class StartingScreen {
         try {
             // (0) SQLITE GET DATABASE
             this.conn = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
-            res = this.conn.createStatement().executeQuery("SELECT DISTINCT Ticker FROM EarningsID");
             System.out.println("Connection Established");
 
 
             // (0) Initializing overall frame elements
-            AutoCompleteDecorator AutoDeco;
-            JComboBox combobox;
             JFrame f;
             f = new JFrame("SNP500DB");
             f.setSize(1000,600);//1000 width and 600 height
@@ -50,7 +47,6 @@ public class StartingScreen {
             //     getClass().getResource("finance-icon.png")).getImage()); // set icon
 
             // (1) INPUT LEFT TAB
-
             JTabbedPane main_tab = new JTabbedPane();
             JPanel panel1, panel2, panel3, panel4;
             panel1 = new JPanel();
@@ -59,95 +55,140 @@ public class StartingScreen {
             panel4 = new JPanel();
             main_tab.setBounds(50, 100, 200, 380);
             main_tab.addTab("Primary", panel1);
-            JCheckBox pri_box1, pri_box2, pri_box3, pri_box4, pri_box5;
-            // (1.1) Primary Tab: Checkboxes selecting specific financial attributes
-            pri_box1 = new JCheckBox("Cash Flow");
-            pri_box2 = new JCheckBox("Balance Sheet");
-            pri_box3 = new JCheckBox("Income Statement");
-            pri_box4 = new JCheckBox("Stock Price");
-            pri_box5 = new JCheckBox("Price Target");
+            JRadioButton pri_box1, pri_box2, pri_box3, pri_box4;
+            // (1.1) Primary Tab: Checkboxes selecting specific financial attributes + quarter
+            ButtonGroup G = new ButtonGroup();
+            pri_box1 = new JRadioButton("Cash Flow");
+            pri_box2 = new JRadioButton("Balance Sheet");
+            pri_box3 = new JRadioButton("Income Statement");
+            pri_box4 = new JRadioButton("Price Target");
+            G.add(pri_box1);
+            G.add(pri_box2);
+            G.add(pri_box3);
+            G.add(pri_box4);
             panel1.add(pri_box1);
             panel1.add(pri_box2);
             panel1.add(pri_box3);
             panel1.add(pri_box4);
-            panel1.add(pri_box5);
 
-            // (1.2) Secondary Tab: Picking company to compare with
-
-            //
-            // TODO: Get company names from query instead of hardcoding
-            //
-            main_tab.addTab("Secondary", panel2);
-            JCheckBox sec_com1, sec_com2, sec_com3, sec_com4, sec_com5, sec_com6;
-            sec_com1 = new JCheckBox("Company 1");
-            sec_com2 = new JCheckBox("Company 2");
-            sec_com3 = new JCheckBox("Company 3");
-            sec_com4 = new JCheckBox("Company 4");
-            sec_com5 = new JCheckBox("Company 5");
-            sec_com6 = new JCheckBox("Company 6");
-            panel2.add(sec_com1);
-            panel2.add(sec_com2);
-            panel2.add(sec_com3);
-            panel2.add(sec_com4);
-            panel2.add(sec_com5);
-            panel2.add(sec_com6);
-
-            // (1.3) Quarter Tab: Pick Q1, Q2, Q3, Q4
-
-            //
-            // TODO: Get company names from query instead of hardcoding
-            //
-            main_tab.addTab("Quarter", panel3);
-            JCheckBox q1, q2, q3, q4;
-            q1 = new JCheckBox("Q1");
-            q2 = new JCheckBox("Q2");
-            q3 = new JCheckBox("Q3");
-            q4 = new JCheckBox("Q4");
-            panel3.add(q1);
-            panel3.add(q2);
-            panel3.add(q3);
-            panel3.add(q4);
-
-            // // (1.4) Year Tab: Pick (DEFUNCT, WILL ONLY USE 2021)
-            // main_tab.addTab("Year", panel4);
-            // JCheckBox y_2022, y_2021, y_2020, y_2019, y_2018;
-            // y_2022 = new JCheckBox("2022");
-            // y_2021 = new JCheckBox("2021");
-            // y_2020 = new JCheckBox("2020");
-            // y_2019 = new JCheckBox("2019");
-            // y_2018 = new JCheckBox("2018");
-            // panel4.add(y_2022);
-            // panel4.add(y_2021);
-            // panel4.add(y_2020);
-            // panel4.add(y_2019);
-            // panel4.add(y_2018);
-            // // year checkbox tab
+            // Q1 Q2 Q3 Q4
+            // main_tab.addTab("Quarter", panel3);
+            JRadioButton q1, q2, q3, q4;
+            // (1.1) Primary Tab: Checkboxes selecting specific financial attributes
+            ButtonGroup G2 = new ButtonGroup();
+            q1 = new JRadioButton("Q1");
+            q2 = new JRadioButton("Q2");
+            q3 = new JRadioButton("Q3");
+            q4 = new JRadioButton("Q4");
+            G2.add(q1);
+            G2.add(q2);
+            G2.add(q3);
+            G2.add(q4);
+            panel1.add(new JSeparator(SwingConstants.VERTICAL));
+            panel1.add(q1);
+            panel1.add(q2);
+            panel1.add(q3);
+            panel1.add(q4);
 
             main_tab.setBackground(Color.lightGray);
             f.add(main_tab);
             
             // SELECT COMPANY: Grab company names from SQL
             ArrayList<String> name = new ArrayList<String>();
+            
+            res = this.conn.createStatement().executeQuery("SELECT DISTINCT Ticker FROM EarningsID");
             while (res.next()) {
                 name.add(res.getString("Ticker"));
                 System.out.println(res.getString("Ticker"));
             }
-            combobox = new JComboBox(name.toArray());
-            AutoCompleteDecorator.decorate(combobox);
-            combobox.setBounds(65, 65, 170, 23);
-            f.add(combobox, BorderLayout.NORTH);
+            JComboBox companyOne;
+            JComboBox companyTwo;
+            // AutoCompleteDecorator AutoDeco;
+            companyOne = new JComboBox(name.toArray());
+            name.add(0,"");
+            companyTwo = new JComboBox(name.toArray());
+            companyOne.setBounds(55, 65, 170, 23);
+            companyTwo.setBounds(245, 65, 170, 23);
+            f.add(companyOne, BorderLayout.NORTH);
+            f.add(companyTwo, BorderLayout.NORTH);
+
+            // (2) OUTPUT FRAME on the right
+            JScrollPane sql_result = new JScrollPane();
+            sql_result.setBounds(325, 100, 600, 400);
+            sql_result.setBackground(Color.white);
+            f.add(sql_result);
 
             // APPLY BUTTON 
             JButton b_apply = new JButton("APPLY");
             b_apply.setBounds(100, 470, 100, 50);//x axis, y axis, width, height
             f.add(b_apply);//adding button in JFrame
-            
-            // (2) OUTPUT FRAME on the right
-            JPanel sql_result = new JPanel();
-            sql_result.setBounds(325, 100, 600, 400);
-            sql_result.add(new JLabel("Graph to be implemented"));
-            sql_result.setBackground(Color.white);
-            f.add(sql_result);
+            b_apply.addActionListener(new java.awt.event.ActionListener() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    // execute apply button
+                    sql_result.removeAll();
+                    
+                    // FINANCIAL CATEGORY
+                    String category = "CashFlow";
+                    ArrayList<String> categoryColumns = new ArrayList<String>();
+                    if (pri_box1.isSelected()) {
+                        category = "CashFlow";
+                        categoryColumns = new ArrayList<>(Arrays.asList("ID", "NetIncome", "OperatingActivities", "InvestingActivities", "FinancialActivities", "EffectOfExchRateChanges", "NetIncInCashCashEquiv"));
+                    }
+                    if (pri_box2.isSelected()) {
+                        category = "BalanceSheet";
+                        categoryColumns = new ArrayList<>(Arrays.asList("ID", "TotalCurrentAssets", "TotalNoncurrentAssets", "TotalAssets", "TotalCurrentLiabilities", "TotalNoncurrentLiabilities", "TotalLiabilities", "EquitiesAttrToParentCompany", "TotalEquities", "TotalLiabilitiesEquities"));
+                    }
+                    if (pri_box3.isSelected()) {
+                        category = "IncomeStatement";
+                        categoryColumns = new ArrayList<>(Arrays.asList("ID", "TotalRevenue", "GrossProfit", "OperatingIncome", "NetIncomePreTax", "NetIncome", "DilutedEPS"));
+                    }
+                    if (pri_box4.isSelected()) {
+                        category = "PriceTarget";
+                        categoryColumns = new ArrayList<>(Arrays.asList());
+                    }
+                    // QUARTER
+                    String quarter = "Q1";
+                    if (q1.isSelected()) {quarter = "Q1";}
+                    if (q2.isSelected()) {quarter = "Q2";}
+                    if (q3.isSelected()) {quarter = "Q3";}
+                    if (q4.isSelected()) {quarter = "Q4";}
+                    
+                    String[][] data_as_array;
+                    ArrayList<ArrayList<String>> data = new ArrayList<>();
+                    try {
+                        Connection conn = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
+                        ResultSet res = conn.createStatement().executeQuery(String.format("SELECT * FROM %s c JOIN EarningsID e ON c.ID=e.ID WHERE e.Quarter='%s' AND e.Ticker IN ('%s', '%s');",category,quarter,companyOne.getSelectedItem(),companyTwo.getSelectedItem()));
+                        
+                        while (res.next()) {
+                            ArrayList<String> data_one_col = new ArrayList<String>();
+                            for (String column:categoryColumns) {
+                                data_one_col.add(res.getString(column));
+                            }
+                            data.add(data_one_col);
+                        }
+                        data_as_array = new String[data.size()][];
+                        for (int i = 0; i < data.size(); i++) {
+                            ArrayList<String> row = data.get(i);
+                            data_as_array[i] = row.toArray(new String[row.size()]);
+                        }
+
+                        // update result display
+                        JTable table = new JTable(data_as_array, categoryColumns.toArray());
+                        f.remove(sql_result);
+                        JScrollPane sql_result = new JScrollPane(table);
+                        sql_result.setBounds(325, 100, 600, 400);
+                        sql_result.setBackground(Color.white);
+                        f.add(sql_result);
+                        f.add(new JSeparator(SwingConstants.VERTICAL)); // add separator in between table(top) and graph(bottom) for display
+
+                    table.setFillsViewportHeight(true);
+
+                    } catch (Exception e) {
+                        System.out.println(e.getMessage());
+                    }
+                }
+            });
 
             // (3) (?) info button to get description of app
             JButton infoButton = new JButton("?");
@@ -158,11 +199,10 @@ public class StartingScreen {
                     JOptionPane.showMessageDialog(f, "SNP500DB is a CRUD application for investors providing financial information of top 25 companies (by market-cap) in the S&P 500 in 2020-2021.");
                 }
             });
-
             f.add(infoButton);//adding button in JFrame
-            
-            f.setVisible(true);//making the frame visible
 
+
+            f.setVisible(true);//making the frame visible
         } catch (Exception e) {
             System.out.println(e.getMessage());
         } finally {
