@@ -34,7 +34,6 @@ public class StartingScreen {
             this.conn = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
             System.out.println("Connection Established");
 
-
             // (0) Initializing overall frame elements
             JFrame f;
             f = new JFrame("SNP500DB");
@@ -43,6 +42,7 @@ public class StartingScreen {
             f.setLocationRelativeTo(null);
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             f.setResizable(false);
+            
             // f.setIconImage(new ImageIcon(
             //     getClass().getResource("finance-icon.png")).getImage()); // set icon
 
@@ -71,7 +71,6 @@ public class StartingScreen {
             panel1.add(pri_box3);
             panel1.add(pri_box4);
 
-            // Q1 Q2 Q3 Q4
             // main_tab.addTab("Quarter", panel3);
             JRadioButton q1, q2, q3, q4;
             // (1.1) Primary Tab: Checkboxes selecting specific financial attributes
