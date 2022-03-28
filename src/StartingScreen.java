@@ -1,9 +1,11 @@
 import javax.swing.*;
-//import com.mysql.cj.xdevapi.Result;
 import org.jdesktop.swingx.autocomplete.AutoCompleteDecorator;
 import java.awt.*;
 import java.sql.*;
 import java.util.*;
+
+// TODO
+// DISPLAY GRAPHS https://docs.oracle.com/javafx/2/charts/pie-chart.htm
 
 public class StartingScreen {
 
@@ -26,6 +28,9 @@ public class StartingScreen {
         }
     }
 
+    JComboBox financialSubcategory;
+    JScrollPane sql_result; // output frame on the right
+    
     public void refreshStartingScreen() {
         // refresh screen every time there's an update
         ResultSet res = null;
@@ -42,9 +47,6 @@ public class StartingScreen {
             f.setLocationRelativeTo(null);
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             f.setResizable(false);
-            
-            // f.setIconImage(new ImageIcon(
-            //     getClass().getResource("finance-icon.png")).getImage()); // set icon
 
             // (1) INPUT LEFT TAB
             JTabbedPane main_tab = new JTabbedPane();
@@ -70,7 +72,6 @@ public class StartingScreen {
             panel1.add(pri_box2);
             panel1.add(pri_box3);
             panel1.add(pri_box4);
-
             // main_tab.addTab("Quarter", panel3);
             JRadioButton q1, q2, q3, q4;
             // (1.1) Primary Tab: Checkboxes selecting specific financial attributes
@@ -92,7 +93,7 @@ public class StartingScreen {
             main_tab.setBackground(Color.lightGray);
             f.add(main_tab);
             
-            // SELECT COMPANY: Grab company names from SQL
+            // (1.2) SELECT COMPANY: Grab company names from SQL
             ArrayList<String> name = new ArrayList<String>();
             
             res = this.conn.createStatement().executeQuery("SELECT DISTINCT Ticker FROM EarningsID");
@@ -102,22 +103,38 @@ public class StartingScreen {
             }
             JComboBox companyOne;
             JComboBox companyTwo;
-            // AutoCompleteDecorator AutoDeco;
+
             companyOne = new JComboBox(name.toArray());
             name.add(0,"");
             companyTwo = new JComboBox(name.toArray());
-            companyOne.setBounds(55, 65, 170, 23);
-            companyTwo.setBounds(245, 65, 170, 23);
+            companyOne.setBounds(55, 45, 170, 23);
+            companyTwo.setBounds(245, 45, 170, 23);
             f.add(companyOne, BorderLayout.NORTH);
             f.add(companyTwo, BorderLayout.NORTH);
 
+            // (1.2.2) Button with option of comparing all companies at the same time
+            JRadioButton allCompaniesCheck = new JRadioButton("All Companies");
+            JPanel allCompaniesCheckBoxPanel = new JPanel();
+            allCompaniesCheckBoxPanel.setBounds(215,65,200,30);
+            allCompaniesCheckBoxPanel.add(allCompaniesCheck);
+            f.add(allCompaniesCheckBoxPanel);
+
             // (2) OUTPUT FRAME on the right
-            JScrollPane sql_result = new JScrollPane();
+            sql_result = new JScrollPane();
             sql_result.setBounds(325, 100, 600, 400);
             sql_result.setBackground(Color.white);
             f.add(sql_result);
+            // (2.1) BUTTONS UNDER OUTPUT FRAME selecting:
+            // - allColumns, income, asset, ...
+            // - default, barGraph, dotGraph, LineGraph, circleGraph
+            financialSubcategory = new JComboBox(new String[] {""}); // this will be filled with options once information queried for the first time
+            JComboBox displayType = new JComboBox(new String[] {"Default", "Bar Graph", "Dot Graph", "Line Graph", "Pie Graph"});
+            financialSubcategory.setBounds(550, 520, 170, 23);
+            displayType.setBounds(750, 520, 170, 23);
+            f.add(financialSubcategory, BorderLayout.NORTH);
+            f.add(displayType, BorderLayout.NORTH);
 
-            // APPLY BUTTON 
+            // (3) APPLY BUTTON 
             JButton b_apply = new JButton("APPLY");
             b_apply.setBounds(100, 470, 100, 50);//x axis, y axis, width, height
             f.add(b_apply);//adding button in JFrame
@@ -125,9 +142,8 @@ public class StartingScreen {
                 @Override
                 public void actionPerformed(java.awt.event.ActionEvent evt) {
                     // execute apply button
-                    sql_result.removeAll();
-                    
-                    // FINANCIAL CATEGORY
+                
+                    // SELECTING: FINANCIAL CATEGORY
                     String category = "CashFlow";
                     ArrayList<String> categoryColumns = new ArrayList<String>();
                     if (pri_box1.isSelected()) {
@@ -146,43 +162,114 @@ public class StartingScreen {
                         category = "PriceTarget";
                         categoryColumns = new ArrayList<>(Arrays.asList());
                     }
-                    // QUARTER
+                    // SELECTING: QUARTER
                     String quarter = "Q1";
                     if (q1.isSelected()) {quarter = "Q1";}
                     if (q2.isSelected()) {quarter = "Q2";}
                     if (q3.isSelected()) {quarter = "Q3";}
                     if (q4.isSelected()) {quarter = "Q4";}
-                    
-                    String[][] data_as_array;
+
+                    // SELECTING: financialSubcategory and displayType
+                    // int subcatIndex = financialSubcategory.getSelectedIndex();
+                    // int dispTypeIndex = displayType.getSelectedIndex();
+
+                    // populate financial subcategory combobox
+                    f.remove(financialSubcategory);
+
+                    ArrayList<String> financialSubcategoryArray = (ArrayList)categoryColumns.clone(); // list of financial subcategories for JComboBox
+
                     ArrayList<ArrayList<String>> data = new ArrayList<>();
                     try {
                         Connection conn = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
                         ResultSet res = conn.createStatement().executeQuery(String.format("SELECT * FROM %s c JOIN EarningsID e ON c.ID=e.ID WHERE e.Quarter='%s' AND e.Ticker IN ('%s', '%s');",category,quarter,companyOne.getSelectedItem(),companyTwo.getSelectedItem()));
+                        if (allCompaniesCheck.isSelected()) {
+                            res = conn.createStatement().executeQuery(String.format("SELECT * FROM %s c JOIN EarningsID e ON c.ID=e.ID WHERE e.Quarter='%s' AND e.Ticker IN (SELECT DISTINCT Ticker FROM EarningsID);",category,quarter));
+                        }
                         
                         while (res.next()) {
                             ArrayList<String> data_one_col = new ArrayList<String>();
-                            for (String column:categoryColumns) {
-                                data_one_col.add(res.getString(column));
+                            // if we select anything other than "" as financial subcategory, return only that subcategory
+                            if (!financialSubcategory.getSelectedItem().equals("")) { // if "" (i.e. all subcategories) not selected
+                                data_one_col.add(res.getString("id")); // id row (hardcoded...)
+                                data_one_col.add(res.getString(financialSubcategory.getSelectedItem().toString())); // subcategory row
+                            // if we select "", return every subcategory
+                            } else {
+                                for (String column:categoryColumns) {
+                                    data_one_col.add(res.getString(column));
+                                }
                             }
+                            
                             data.add(data_one_col);
                         }
-                        data_as_array = new String[data.size()][];
-                        for (int i = 0; i < data.size(); i++) {
-                            ArrayList<String> row = data.get(i);
-                            data_as_array[i] = row.toArray(new String[row.size()]);
-                        }
 
-                        // update result display
-                        JTable table = new JTable(data_as_array, categoryColumns.toArray());
+                        financialSubcategoryArray.set(0, ""); // add "" to beginning of the list to select for all categories
+                        financialSubcategory = new JComboBox(financialSubcategoryArray.toArray()); // filled with options once information queried for the first time
+                        financialSubcategory.setBounds(550, 520, 170, 23);
+                        f.add(financialSubcategory, BorderLayout.NORTH);
+
+                        
                         f.remove(sql_result);
-                        JScrollPane sql_result = new JScrollPane(table);
+                        sql_result = new JScrollPane(); //JScrollPane sql_result = new JScrollPane(table);
+
                         sql_result.setBounds(325, 100, 600, 400);
                         sql_result.setBackground(Color.white);
+                        
+                        // update result display
+                        JPanel table_panel = new JPanel(new GridLayout(0,1));
+                        for (int i = 0; i < data.get(0).size(); i++) {
+                            JPanel panel_row = new JPanel(new GridLayout(0,3)); // row contains finance category, company1's metric, company2's metric
+                            JPanel category_panel = new JPanel(); // (1) finance category
+                            category_panel.add(new JLabel(categoryColumns.get(i))); // place the cells with subcategory labels first
+                            panel_row.add(category_panel);
+                            panel_row.setSize(10,10);
+                            if (data.size() == 1) { // only result for 1 company 
+                                JPanel company1 = new JPanel();
+                                company1.setSize(5,5);
+                                company1.setBackground(Color.green); 
+                                company1.add(new JLabel(data.get(0).get(i).toString()));
+                                panel_row.add(company1);
+                            }
+                            if (data.size() == 2) { // result for 2 companies
+                                JPanel company1 = new JPanel();
+                                company1.setSize(5,5);
+                                company1.add(new JLabel(data.get(0).get(i).toString()));
+                                JPanel company2 = new JPanel();
+                                company2.setSize(5,5);
+                                company2.add(new JLabel(data.get(1).get(i).toString()));
+                                
+                                if (Float.parseFloat(data.get(0).get(i)) > Float.parseFloat(data.get(1).get(i))) {
+                                    company1.setBackground(Color.green); 
+                                    company2.setBackground(Color.lightGray); 
+                                } else {
+                                    company1.setBackground(Color.lightGray); 
+                                    company2.setBackground(Color.green); 
+                                }
+                                panel_row.add(company1);
+                                panel_row.add(company2);
+                            }
+                            if (data.size() > 2) { // result for all companies 
+                                //(TODO: implement green cell for best metric like above)
+
+                                panel_row = new JPanel(new GridLayout(0,1+data.size())); // remake grid to accomodate 25 companies instead of 2
+                                panel_row.add(category_panel); // again, place the cells with subcategory labels first
+                                panel_row.setSize(10,10);
+                                for (int k=0 ; k < data.size() ; k++) {
+                                    JPanel company = new JPanel();
+                                    company.setSize(5,5);
+                                    company.add(new JLabel(data.get(k).get(i).toString()));
+                                    panel_row.add(company);
+                                }
+                            }
+                            table_panel.add(panel_row);
+                        }
+                        sql_result.getViewport().add(table_panel);
                         f.add(sql_result);
-                        f.add(new JSeparator(SwingConstants.VERTICAL)); // add separator in between table(top) and graph(bottom) for display
 
-                    table.setFillsViewportHeight(true);
+                        sql_result.revalidate();
+                        sql_result.repaint();
 
+                        f.revalidate();
+                        f.repaint();
                     } catch (Exception e) {
                         System.out.println(e.getMessage());
                     }
