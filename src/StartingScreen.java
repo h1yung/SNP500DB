@@ -5,6 +5,10 @@ import java.sql.*;
 import java.util.*;
 
 // TODO
+// connect CRUD to procedures
+// - stored procedures 
+// - prepared statement, orm
+// automatically reorder sql
 // DISPLAY GRAPHS https://docs.oracle.com/javafx/2/charts/pie-chart.htm
 
 public class StartingScreen {
@@ -30,6 +34,8 @@ public class StartingScreen {
 
     JComboBox financialSubcategory;
     JScrollPane sql_result; // output frame on the right
+    JComboBox companyOne;
+    JComboBox companyTwo;
     
     public void refreshStartingScreen() {
         // refresh screen every time there's an update
@@ -92,17 +98,14 @@ public class StartingScreen {
 
             main_tab.setBackground(Color.lightGray);
             f.add(main_tab);
-            
+
             // (1.2) SELECT COMPANY: Grab company names from SQL
             ArrayList<String> name = new ArrayList<String>();
             
-            res = this.conn.createStatement().executeQuery("SELECT DISTINCT Ticker FROM EarningsID");
+            res = this.conn.createStatement().executeQuery("SELECT DISTINCT Ticker FROM EarningsID;");
             while (res.next()) {
                 name.add(res.getString("Ticker"));
-                System.out.println(res.getString("Ticker"));
             }
-            JComboBox companyOne;
-            JComboBox companyTwo;
 
             companyOne = new JComboBox(name.toArray());
             name.add(0,"");
@@ -136,7 +139,7 @@ public class StartingScreen {
 
             // (3) APPLY BUTTON 
             JButton b_apply = new JButton("APPLY");
-            b_apply.setBounds(100, 470, 100, 50);//x axis, y axis, width, height
+            b_apply.setBounds(50, 470, 100, 50);//x axis, y axis, width, height
             f.add(b_apply);//adding button in JFrame
             b_apply.addActionListener(new java.awt.event.ActionListener() {
                 @Override
@@ -159,9 +162,10 @@ public class StartingScreen {
                         categoryColumns = new ArrayList<>(Arrays.asList("ID", "TotalRevenue", "GrossProfit", "OperatingIncome", "NetIncomePreTax", "NetIncome", "DilutedEPS"));
                     }
                     if (pri_box4.isSelected()) {
-                        category = "PriceTarget";
-                        categoryColumns = new ArrayList<>(Arrays.asList());
+                        category = "PriceTargets";
+                        categoryColumns = new ArrayList<>(Arrays.asList("ID", "Price"));
                     }
+
                     // SELECTING: QUARTER
                     String quarter = "Q1";
                     if (q1.isSelected()) {quarter = "Q1";}
@@ -179,8 +183,10 @@ public class StartingScreen {
                     ArrayList<String> financialSubcategoryArray = (ArrayList)categoryColumns.clone(); // list of financial subcategories for JComboBox
 
                     ArrayList<ArrayList<String>> data = new ArrayList<>();
+
+                    Connection conn = null;
                     try {
-                        Connection conn = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
+                        conn = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
                         ResultSet res = conn.createStatement().executeQuery(String.format("SELECT * FROM %s c JOIN EarningsID e ON c.ID=e.ID WHERE e.Quarter='%s' AND e.Ticker IN ('%s', '%s');",category,quarter,companyOne.getSelectedItem(),companyTwo.getSelectedItem()));
                         if (allCompaniesCheck.isSelected()) {
                             res = conn.createStatement().executeQuery(String.format("SELECT * FROM %s c JOIN EarningsID e ON c.ID=e.ID WHERE e.Quarter='%s' AND e.Ticker IN (SELECT DISTINCT Ticker FROM EarningsID);",category,quarter));
@@ -190,24 +196,29 @@ public class StartingScreen {
                             ArrayList<String> data_one_col = new ArrayList<String>();
                             // if we select anything other than "" as financial subcategory, return only that subcategory
                             if (!financialSubcategory.getSelectedItem().equals("")) { // if "" (i.e. all subcategories) not selected
-                                data_one_col.add(res.getString("id")); // id row (hardcoded...)
+                                
+                                data_one_col.add(res.getString("ID"));
                                 data_one_col.add(res.getString(financialSubcategory.getSelectedItem().toString())); // subcategory row
                             // if we select "", return every subcategory
                             } else {
                                 for (String column:categoryColumns) {
-                                    data_one_col.add(res.getString(column));
+                                    if (column == "ID") {
+                                        ResultSet res_1 = conn.createStatement().executeQuery(String.format("SELECT Ticker FROM EarningsID WHERE ID=%s;",res.getString("id")));
+                                        data_one_col.add(res_1.getString("Ticker"));
+                                    } else {
+                                        data_one_col.add(res.getString(column));
+                                    }
                                 }
                             }
-                            
                             data.add(data_one_col);
                         }
+                        
 
                         financialSubcategoryArray.set(0, ""); // add "" to beginning of the list to select for all categories
                         financialSubcategory = new JComboBox(financialSubcategoryArray.toArray()); // filled with options once information queried for the first time
                         financialSubcategory.setBounds(550, 520, 170, 23);
                         f.add(financialSubcategory, BorderLayout.NORTH);
 
-                        
                         f.remove(sql_result);
                         sql_result = new JScrollPane(); //JScrollPane sql_result = new JScrollPane(table);
 
@@ -216,6 +227,7 @@ public class StartingScreen {
                         
                         // update result display
                         JPanel table_panel = new JPanel(new GridLayout(0,1));
+
                         for (int i = 0; i < data.get(0).size(); i++) {
                             JPanel panel_row = new JPanel(new GridLayout(0,3)); // row contains finance category, company1's metric, company2's metric
                             JPanel category_panel = new JPanel(); // (1) finance category
@@ -237,13 +249,19 @@ public class StartingScreen {
                                 company2.setSize(5,5);
                                 company2.add(new JLabel(data.get(1).get(i).toString()));
                                 
-                                if (Float.parseFloat(data.get(0).get(i)) > Float.parseFloat(data.get(1).get(i))) {
-                                    company1.setBackground(Color.green); 
-                                    company2.setBackground(Color.lightGray); 
-                                } else {
-                                    company1.setBackground(Color.lightGray); 
-                                    company2.setBackground(Color.green); 
+                                try {
+                                    if (Float.parseFloat(data.get(0).get(i)) > Float.parseFloat(data.get(1).get(i))) {
+                                        company1.setBackground(Color.green); 
+                                        company2.setBackground(Color.lightGray); 
+                                    } else {
+                                        company1.setBackground(Color.lightGray); 
+                                        company2.setBackground(Color.green); 
+                                    }
+                                } catch (Exception e) {
+                                    System.out.println(e.getMessage());
                                 }
+                                
+
                                 panel_row.add(company1);
                                 panel_row.add(company2);
                             }
@@ -262,6 +280,7 @@ public class StartingScreen {
                             }
                             table_panel.add(panel_row);
                         }
+
                         sql_result.getViewport().add(table_panel);
                         f.add(sql_result);
 
@@ -272,7 +291,302 @@ public class StartingScreen {
                         f.repaint();
                     } catch (Exception e) {
                         System.out.println(e.getMessage());
+                    } finally {
+                        try {
+                            if (conn != null) {
+                                conn.close();
+                            }
+                        } catch (SQLException ex) {
+                            System.out.println(ex.getMessage());
+                        }
                     }
+                }
+            });
+            
+            // (3) ADD/DELETE BUTTON 
+            final JLabel label = new JLabel();
+            JButton b_add_delete = new JButton("UPDATE");
+            b_add_delete.setBounds(150, 470, 100, 50);//x axis, y axis, width, height
+            f.add(b_add_delete);//adding button in JFrame
+            b_add_delete.addActionListener(new java.awt.event.ActionListener() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    // execute apply button
+                    Object[] options = {"add/update", "delete"};
+                    int x = JOptionPane.showOptionDialog(null, "Choose an operation.", "CRUD", JOptionPane.DEFAULT_OPTION, JOptionPane.ERROR_MESSAGE, null, options, options[0]);
+                    
+                    String ticker, quarter, year;
+                    double totalRevenue, grossProfit, operatingIncome, netIncomePreTax, netIncome, dilutedEPS;
+                    double totalCurrentAssets, totalNoncurrentAssets, totalAssets, totalCurrentLiabilities, totalNoncurrentLiabilities, totalLiabilities, equitiesAttrToParentCompany, totalEquities, totalLiabilitiesEquities;
+                    double /*netIncome*/ operatingActivities, investingActivities, financialActivities, effectOfExchRateChanges, netIncInCashCashEquiv;
+                    double price;
+                    
+                    JTextField tickerField = new JTextField();
+                    JComboBox quarterField = new JComboBox(new String[] {"Q1","Q2","Q3","Q4"});
+                    JComboBox yearField = new JComboBox(new String[] {"2020", "2021"});
+                    switch (x) {
+                        case 0: // add
+                            JTextField totalRevenueField = new JTextField("-1");
+                            JTextField grossProfitField = new JTextField("-1");
+                            JTextField operatingIncomeField = new JTextField("-1");
+                            JTextField netIncomePreTaxField = new JTextField("-1");
+                            JTextField netIncomeField = new JTextField("-1");
+                            JTextField dilutedEPSField = new JTextField("-1");
+
+                            JTextField totalCurrentAssetsField = new JTextField("-1");
+                            JTextField totalNoncurrentAssetsField = new JTextField("-1");
+                            JTextField totalAssetsField = new JTextField("-1");
+                            JTextField totalCurrentLiabilitiesField = new JTextField("-1"); 
+                            JTextField totalNoncurrentLiabilitiesField = new JTextField("-1");
+                            JTextField totalLiabilitiesField = new JTextField("-1");
+                            JTextField equitiesAttrToParentCompanyField = new JTextField("-1");
+                            JTextField totalEquitiesField = new JTextField("-1");
+                            JTextField totalLiabilitiesEquitiesField = new JTextField("-1");
+
+                            JTextField operatingActivitiesField = new JTextField("-1");
+                            JTextField investingActivitiesField = new JTextField("-1");
+                            JTextField financialActivitiesField = new JTextField("-1");
+                            JTextField effectOfExchRateChangesField = new JTextField("-1");
+                            JTextField netIncInCashCashEquivField = new JTextField("-1");
+
+                            JTextField priceField = new JTextField("-1");
+                            
+                            GridLayout gridForOptionPane = new GridLayout(6,6);
+                            
+                            Object[] first_list = {
+                                "Ticker:", tickerField,
+                                "Quarter:", quarterField,
+                                "Year:", yearField
+                            };
+                            Object[] second_list = {
+                                "Total Revenue:", totalRevenueField,
+                                "Gross Profit:", grossProfitField,
+                                "Operating Income:", operatingIncomeField,
+                                "Net Income Pre-Tax:", netIncomePreTaxField,
+                                "Net Income:", netIncomeField,
+                                "Diluted EPS:", dilutedEPSField
+                            };
+                            Object[] third_list = {
+                                "Total Current Assets:", totalCurrentAssetsField,
+                                "Total Noncurrent Assets:", totalNoncurrentAssetsField,
+                                "Total Assets:", totalAssetsField,
+                                "Total Current Liabilities:", totalCurrentLiabilitiesField,
+                                "Total Noncurrent Liabilities:", totalNoncurrentLiabilitiesField,
+                                "Total Liabilities:", totalLiabilitiesField,
+                                "Equities Attributable To Parent Company:", equitiesAttrToParentCompanyField,
+                                "Total Equities:", totalEquitiesField,
+                                "Total Liabilities Equities:", totalLiabilitiesEquitiesField
+                            };
+                            Object[] fourth_list = {
+                                "Operating Activities:", operatingActivitiesField,
+                                "Investing Activities:", investingActivitiesField,
+                                "Financial Activities:", financialActivitiesField,
+                                "Effect Of Exchange Rate Changes:", effectOfExchRateChangesField,
+                                "Net Income In Cash Equivalent:", netIncInCashCashEquivField
+                            };
+                            Object[] fifth_list = {
+                                "Price Target:", priceField
+                            };
+                            
+                            int first = JOptionPane.showConfirmDialog(null, first_list, "General Information", JOptionPane.OK_CANCEL_OPTION);
+                            if (first == JOptionPane.OK_OPTION)
+                            {
+                                ticker = tickerField.getText();
+                                quarter = quarterField.getSelectedItem().toString();
+                                year = yearField.getSelectedItem().toString();
+                            } else {
+                                break;
+                            }
+
+                            int second = JOptionPane.showConfirmDialog(null, second_list, "Income Statement", JOptionPane.OK_CANCEL_OPTION);
+                            if (second == JOptionPane.OK_OPTION)
+                            {
+                                totalRevenue = Double.valueOf(totalRevenueField.getText());
+                                grossProfit = Double.valueOf(grossProfitField.getText());
+                                operatingIncome = Double.valueOf(operatingIncomeField.getText());
+                                netIncomePreTax = Double.valueOf(netIncomePreTaxField.getText());
+                                netIncome = Double.valueOf(netIncomeField.getText());
+                                dilutedEPS = Double.valueOf(dilutedEPSField.getText());
+                            } else {
+                                break;
+                            }
+
+                            int third = JOptionPane.showConfirmDialog(null, third_list, "Balance Sheet", JOptionPane.OK_CANCEL_OPTION);
+                            if (third == JOptionPane.OK_OPTION)
+                            {
+                                totalCurrentAssets = Double.valueOf(totalCurrentAssetsField.getText());
+                                totalNoncurrentAssets = Double.valueOf(totalNoncurrentAssetsField.getText());
+                                totalAssets = Double.valueOf(totalAssetsField.getText());
+                                totalCurrentLiabilities = Double.valueOf(totalCurrentLiabilitiesField.getText());
+                                totalNoncurrentLiabilities = Double.valueOf(totalNoncurrentLiabilitiesField.getText());
+                                totalLiabilities = Double.valueOf(totalLiabilitiesField.getText());
+                                equitiesAttrToParentCompany = Double.valueOf(equitiesAttrToParentCompanyField.getText());
+                                totalEquities = Double.valueOf(totalEquitiesField.getText());
+                                totalLiabilitiesEquities = Double.valueOf(totalLiabilitiesEquitiesField.getText()); 
+                            }
+                            else {
+                                break;
+                            }
+
+                            int fourth = JOptionPane.showConfirmDialog(null, fourth_list, "Cash Flow", JOptionPane.OK_CANCEL_OPTION);
+                            if (fourth == JOptionPane.OK_OPTION)
+                            {
+                                operatingActivities = Double.valueOf(operatingActivitiesField.getText());
+                                investingActivities = Double.valueOf(investingActivitiesField.getText());
+                                financialActivities = Double.valueOf(financialActivitiesField.getText());
+                                effectOfExchRateChanges = Double.valueOf(effectOfExchRateChangesField.getText());
+                                netIncInCashCashEquiv = Double.valueOf(netIncInCashCashEquivField.getText());
+                            }
+                            else {
+                                break;
+                            }
+
+                            int fifth = JOptionPane.showConfirmDialog(null, fifth_list, "Price Target", JOptionPane.OK_CANCEL_OPTION);
+                            if (fifth == JOptionPane.OK_OPTION)
+                            {
+                                price = Double.parseDouble(priceField.getText());
+                            }
+                            else {
+                                break;
+                            }
+                            
+                            // TODO: add if doesn't exist already. otherwise, update
+                            ArrayList<String> ticker_list = new ArrayList<String>();
+                            Connection connection = null;
+                            try {
+                                connection = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
+                                ResultSet distinct_tickers = connection.createStatement().executeQuery("SELECT DISTINCT Ticker FROM EarningsID");
+                                ResultSet last_id = connection.createStatement().executeQuery("SELECT MAX(ID) FROM EarningsID");
+                                String temp = String.format("SELECT ID FROM EarningsID WHERE Ticker='%s'", ticker);
+                                ResultSet ticker_id = connection.createStatement().executeQuery(temp);
+
+                                while (distinct_tickers.next()) {
+                                    ticker_list.add(distinct_tickers.getString("Ticker"));
+                                }
+                                if (name.contains(ticker)) {
+                                    String sql = String.format("UPDATE EarningsID SET Quarter=%s, Year=%s WHERE Ticker=%s", quarter, year, ticker);
+                                    connection.createStatement().executeUpdate(sql);
+
+                                    sql = String.format("UPDATE IncomeStatement SET TotalRevenue=%f, GrossProfit=%f, OperatingIncome=%f, NetIncomePreTax=%f, NetIncome=%f, DilutedEPS=%f WHERE ID=%s", 
+                                    totalRevenue, grossProfit, operatingIncome, netIncomePreTax, netIncome, dilutedEPS, ticker_id);
+                                    connection.createStatement().executeUpdate(sql);
+
+                                    sql = String.format("UPDATE BalanceSheet SET TotalCurrentAssets=%f, TotalNoncurrentAssets=%f, TotalAssets=%f, TotalCurrentLiabilities=%f, TotalNoncurrentLiabilities=%f, TotalLiabilities=%f, EquitiesAttrToParentCompany=%f, TotalEquities=%f, TotalLiabilitiesEquities=%f WHERE Ticker=%s", 
+                                    totalCurrentAssets, totalNoncurrentAssets, totalAssets, totalCurrentLiabilities, totalNoncurrentLiabilities, totalLiabilities, equitiesAttrToParentCompany, totalEquities, totalLiabilitiesEquities, ticker_id);
+                                    connection.createStatement().executeUpdate(sql);
+
+                                    sql = String.format("UPDATE CashFlow SET NetIncome=%f, OperatingActivities=%f, InvestingActivities=%f, FinancialActivities=%f, EffectOfExchRateChanges=%f, NetIncInCashCashEquiv=%f WHERE Ticker=%s", 
+                                    netIncome, operatingActivities, investingActivities, financialActivities, effectOfExchRateChanges, netIncInCashCashEquiv, ticker_id);
+                                    connection.createStatement().executeUpdate(sql);
+
+                                    sql = String.format("UPDATE PriceTargets SET Price=%f WHERE Ticker=%s", 
+                                    price, ticker_id);
+                                    connection.createStatement().executeUpdate(sql);
+
+                                    connection.close();
+                                } else {
+
+                                    Integer next_id = Integer.parseInt(last_id.getString(1));
+                                    String sql = String.format("INSERT INTO EarningsID (ID, Quarter, Year, Ticker) VALUES (%s, '%s', %s, '%s')", ((Integer)(next_id + 1)).toString(), quarter, year, ticker);
+                                    connection.createStatement().executeUpdate(sql);
+
+                                    sql = String.format("INSERT INTO IncomeStatement (ID, TotalRevenue, GrossProfit, OperatingIncome, NetIncomePreTax, NetIncome, DilutedEPS) VALUES (%s, %f, %f, %f, %f, %f, %f)", 
+                                    ((Integer)(next_id + 1)).toString(), totalRevenue, grossProfit, operatingIncome, netIncomePreTax, netIncome, dilutedEPS);
+                                    connection.createStatement().executeUpdate(sql);
+                                    
+                                    sql = String.format("INSERT INTO BalanceSheet (ID, TotalCurrentAssets, TotalNoncurrentAssets, TotalAssets, TotalCurrentLiabilities, TotalNoncurrentLiabilities, TotalLiabilities, EquitiesAttrToParentCompany, TotalEquities, TotalLiabilitiesEquities) VALUES (%s, %f, %f, %f, %f, %f, %f, %f, %f, %f)", 
+                                    ((Integer)(next_id + 1)).toString(), totalCurrentAssets, totalNoncurrentAssets, totalAssets, totalCurrentLiabilities, totalNoncurrentLiabilities, totalLiabilities, equitiesAttrToParentCompany, totalEquities, totalLiabilitiesEquities);
+                                    connection.createStatement().executeUpdate(sql);
+
+                                    sql = String.format("INSERT INTO CashFlow (ID, NetIncome, OperatingActivities, InvestingActivities, FinancialActivities, EffectOfExchRateChanges, NetIncInCashCashEquiv) VALUES (%s, %f, %f, %f, %f, %f, %f)", 
+                                    ((Integer)(next_id + 1)).toString(), netIncome, operatingActivities, investingActivities, financialActivities, effectOfExchRateChanges, netIncInCashCashEquiv);
+                                    connection.createStatement().executeUpdate(sql);
+
+                                    sql = String.format("INSERT INTO PriceTargets (ID, Price) VALUES (%s, %f)", 
+                                    ((Integer)(next_id + 1)).toString(), price);
+                                    connection.createStatement().executeUpdate(sql);
+                                    
+                                    companyOne.addItem(ticker);
+                                    companyTwo.addItem(ticker);
+
+                                    connection.close();
+                                }
+                            } catch (Exception e) {
+                                System.out.println(e.getMessage());
+                            } finally {
+                                try {
+                                    if (connection != null) {
+                                        connection.close();
+                                    }
+                                } catch (SQLException ex) {
+                                    System.out.println(ex.getMessage());
+                                }
+                            }
+                            break;
+
+                        case 1: // delete
+                            Object[] delInputs = {
+                                "Ticker:", tickerField,
+                                "Quarter:", quarterField,
+                                "Year:", yearField
+                            };
+                            int delOption = JOptionPane.showConfirmDialog(null, delInputs, "Enter all your values", JOptionPane.OK_CANCEL_OPTION);
+                            if (delOption == JOptionPane.OK_OPTION) {
+                                ticker = tickerField.getText();
+                                quarter = quarterField.getSelectedItem().toString();
+                                year = yearField.getSelectedItem().toString();
+
+                                // TODO: delete if exists.
+                                Connection connection_2 = null;
+                                try {
+                                    connection_2 = DriverManager.getConnection("jdbc:sqlite:db/snp500db.db");
+                                    String temp = String.format("SELECT ID FROM EarningsID WHERE Ticker='%s'", ticker);
+                                    ResultSet ticker_id = connection_2.createStatement().executeQuery(temp);
+
+                                    if (name.contains(ticker)) {
+                                        String sql = String.format("DELETE FROM EarningsID WHERE ID=%s",
+                                        ticker_id.getString("ID"));
+                                        connection_2.createStatement().executeUpdate(sql);
+
+                                        sql = String.format("DELETE FROM IncomeStatement WHERE ID=%s", 
+                                        ticker_id.getString("ID"));
+                                        connection_2.createStatement().executeUpdate(sql);
+
+                                        sql = String.format("DELETE FROM BalanceSheet WHERE ID=%s", 
+                                        ticker_id.getString("ID"));
+                                        connection_2.createStatement().executeUpdate(sql);
+
+                                        sql = String.format("DELETE FROM CashFlow WHERE ID=%s", 
+                                        ticker_id.getString("ID"));
+                                        connection_2.createStatement().executeUpdate(sql);
+
+                                        sql = String.format("DELETE FROM PriceTargets WHERE ID=%s", 
+                                        ticker_id.getString("ID"));
+                                        connection_2.createStatement().executeUpdate(sql);
+
+                                        connection_2.close();
+                                    }
+                                } catch (Exception e) {
+                                    System.out.println(e.getMessage());
+                                } finally {
+                                    try {
+                                        if (connection_2 != null) {
+                                            connection_2.close();
+                                        }
+                                    } catch (SQLException ex) {
+                                        System.out.println(ex.getMessage());
+                                    }
+                                }
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    // update company comboboxes after CRUD
+                    companyOne.repaint();
+                    companyTwo.repaint();
+                    companyOne.revalidate();
+                    companyTwo.revalidate();
                 }
             });
 
@@ -282,12 +596,10 @@ public class StartingScreen {
             infoButton.addActionListener(new java.awt.event.ActionListener() {
                 @Override
                 public void actionPerformed(java.awt.event.ActionEvent evt) {
-                    JOptionPane.showMessageDialog(f, "SNP500DB is a CRUD application for investors providing financial information of top 25 companies (by market-cap) in the S&P 500 in 2020-2021.");
+                    JOptionPane.showMessageDialog(f, "SNP500DB is a CRUD application for investors providing financial information of top 25 companies (by market-cap) in the S&P 500 in 2020-2021. Numbers are in units of billion $USD");
                 }
             });
             f.add(infoButton);//adding button in JFrame
-
-
             f.setVisible(true);//making the frame visible
         } catch (Exception e) {
             System.out.println(e.getMessage());
