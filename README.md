@@ -14,12 +14,10 @@
     <img src="https://user-images.githubusercontent.com/54069717/167226468-b8d7dbdd-20a9-491d-a4fb-54b9ac3057ae.png">
   </a>
 
-  <h3 align="center">snp500db</h3>
+  <h3 align="center">SNP500DB</h3>
 
   <p align="center">
-    Project for Purdue CS34800. Java & SQL integration.
-  Software keeping track of historical financial data (P&L, Income Tax, Cash Gross  Margin...) of companies in the S&P 500.
-
+    Project for Purdue CS34800. Java & SQL integration. Software keeping track of historical financial data (P&L, Income Tax, Cash Gross  Margin...) of companies in the S&P 500.
     <br />
     <br />
   </p>
