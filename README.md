@@ -58,7 +58,7 @@ In this project, we will be developing a DB system containing financial informat
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/h1yung/StikyNotez.git
+   git clone https://github.com/h1yung/SNP500DB.git
    ```
 2. Compile using VSCode as Java Project
 
