@@ -11,7 +11,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/h1yung/SNP500DB">
-    <img src="https://user-images.githubusercontent.com/54069717/167226468-b8d7dbdd-20a9-491d-a4fb-54b9ac3057ae.png="500">
+    <img src="https://user-images.githubusercontent.com/54069717/167226468-b8d7dbdd-20a9-491d-a4fb-54b9ac3057ae.png>
   </a>
 
   <h3 align="center">stikynotez</h3>
