@@ -66,6 +66,8 @@ In this project, we will be developing a DB system containing financial informat
 ## Contact
 
 Daniel Park - [@h1yung][linkedin-url] - h1yungpark@gmail.com
+Hyungchan Cho
+Jinwoo Jeong
 
 Project Link: [https://github.com/h1yung/SNP500DB](https://github.com/h1yung/SNP500DB)
 
