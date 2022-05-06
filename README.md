@@ -11,7 +11,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/h1yung/SNP500DB">
-    <img src="https://user-images.githubusercontent.com/54069717/71475766-a806cf00-27af-11ea-9aff-4b0500bf2951.png" alt="Logo" width="80" height="80">
+    <img src="https://user-images.githubusercontent.com/54069717/167226468-b8d7dbdd-20a9-491d-a4fb-54b9ac3057ae.png="500">
   </a>
 
   <h3 align="center">stikynotez</h3>
@@ -48,7 +48,7 @@
 
 In this project, we will be developing a DB system containing financial information about companies listed in the S&P 500 (P&L throughout earnings quarters, Income Tax, Cash Gross Margin…). This will provide useful information to stock investors to make informed decisions. The database will be appendable as new information come out and also modifiable when things change. Several tables will be connected across the database with the ticker as the primary key, and we will enable sorting of data based on different financial attributes to increase readability and prioritization of certain financial attributes.
 
-<img width="211" alt="titlescreen" src="https://user-images.githubusercontent.com/54069717/167226468-b8d7dbdd-20a9-491d-a4fb-54b9ac3057ae.png">
+<img width="500" alt="titlescreen" src="https://user-images.githubusercontent.com/54069717/167226468-b8d7dbdd-20a9-491d-a4fb-54b9ac3057ae.png">
 
 <!-- USAGE -->
 ## Usage
